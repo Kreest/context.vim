@@ -16,6 +16,12 @@ function! context#settings#parse() abort
     " (use :ContextEnable to enable it later)
     let enabled = get(g:, 'context_enabled', 1)
 
+    " which line the context is anchored to:
+    " 'cursor'  - the current cursor line (default, original behaviour)
+    " 'topline' - the top visible line of the window (like treesitter-context's
+    "             topline mode), so the context only changes when you scroll
+    let base = get(g:, 'context_base', 'cursor')
+
     " if you wish to blacklist a specific filetype, add the name of the
     " filetype to this list.
     let filetype_blacklist = get(g:, 'context_filetype_blacklist', [])
@@ -125,6 +131,7 @@ function! context#settings#parse() abort
     let g:context = {
                 \ 'presenter':           presenter,
                 \ 'enabled':             enabled,
+                \ 'base':                base,
                 \ 'filetype_blacklist':  filetype_dict,
                 \ 'buftype_blacklist':   buftype_dict,
                 \ 'add_mappings':        add_mappings,

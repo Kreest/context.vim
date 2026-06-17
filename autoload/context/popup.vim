@@ -20,7 +20,11 @@ function! context#popup#get_context() abort
 
     " a skipped line has the same context as the next unskipped one below
     let skipped       =  0
-    let line_number   = w:context.cursor_line - 1 " first iteration starts with cursor_line
+    " which line the context is anchored to: the cursor line by default, or the
+    " top visible line when g:context_base is 'topline' (mirrors the behaviour
+    " of treesitter-context's topline mode)
+    let anchor_line   = g:context.base ==# 'topline' ? w:context.top_line : w:context.cursor_line
+    let line_number   = anchor_line - 1 " first iteration starts with the anchor line
     let top_line      = w:context.top_line
     let border_height = g:context.show_border
 
@@ -48,7 +52,10 @@ function! context#popup#get_context() abort
             return [[], 0]
         endif
 
-        if w:context.fix_strategy == 'scroll'
+        " in topline mode we always want the context of the first line that
+        " stays visible *below* the popup, so we skip the scroll shortcut and
+        " let the fit check below move the base line past the covered lines
+        if g:context.base !=# 'topline' && w:context.fix_strategy == 'scroll'
             call context#util#echof('scroll: done')
             break
         endif
@@ -59,8 +66,15 @@ function! context#popup#get_context() abort
             break
         endif
 
-        " try again on next line if this context doesn't fit
+        " this context doesn't fit, try again further down.
         let skipped = 0
+        if g:context.base ==# 'topline'
+            " jump straight to the first line the popup (line_count context
+            " lines + border) can't cover instead of probing every line in
+            " between. we only loop again if the deeper context grew taller.
+            " (-1 because the loop increments line_number at the top)
+            let line_number = top_line + line_count + border_height - 1
+        endif
     endwhile
 
     let [lines, line_number] = context#util#filter(context, line_number, 1)
